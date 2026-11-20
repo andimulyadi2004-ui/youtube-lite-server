@@ -1,0 +1,59 @@
+name: yt-server
+on:
+  workflow_dispatch:
+    inputs:
+      n:
+        description: "urutan sesi"
+        default: "1"
+permissions:
+  contents: write
+  actions: write
+jobs:
+  serve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Siapkan
+        run: |
+          pip install -U yt-dlp
+          wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O cloudflared
+          chmod +x cloudflared
+          echo "TES SEARCH:"
+          yt-dlp --flat-playlist --no-warnings --print "%(id)s %(title)s" "ytsearch2:tes" || echo "TES SEARCH GAGAL"
+      - name: Server + tunnel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          N: ${{ inputs.n }}
+        run: |
+          nohup python server.py > server.log 2>&1 &
+          nohup ./cloudflared tunnel --url http://localhost:8080 --no-autoupdate > tunnel.log 2>&1 &
+          URL=""
+          for i in $(seq 1 40); do
+            URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' tunnel.log | head -1)
+            if [ -n "$URL" ]; then break; fi
+            sleep 2
+          done
+          if [ -z "$URL" ]; then cat tunnel.log; exit 1; fi
+          echo "URL: $URL"
+          git config user.name "ytlite-bot"
+          git config user.email "bot@users.noreply.github.com"
+          echo "$URL" > url.txt
+          git add url.txt
+          git commit -qm "url sesi $N"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && break
+            sleep 3
+          done
+          sleep 20400
+          if [ "$N" -lt 31 ]; then
+            gh workflow run run.yml --ref main -f n=$((N+1))
+          fi
+          git add -f history.json 2>/dev/null || true
+          git commit -qm "history" || true
+          git pull -q --rebase --autostash origin main && git push -q origin HEAD:main || true
+          sleep 300
