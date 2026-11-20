@@ -47,6 +47,29 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
 #hist h3{padding:1rem .8rem .3rem;font-size:1.1rem}
 .chips{padding:.4rem .8rem;display:flex;flex-wrap:wrap;gap:.5rem}
 .chip{background:#222;padding:.5rem .9rem;border-radius:1rem;font-size:.9rem;cursor:pointer;max-width:100%;word-break:break-word}
+
+#player .stage,#player .info{flex:none}
+#player .stage{display:flex;flex-direction:column;width:100%;max-width:60rem;margin:0 auto}
+#player .side{order:-1;display:flex;justify-content:space-between;gap:.5rem;padding:.6rem}
+#cbtn{display:none}
+#player .info{width:100%;max-width:60rem;margin:0 auto;padding:.8rem}
+.ch{font-size:1.05rem;margin:1rem 0 .6rem}
+.cmt{display:flex;gap:.7rem;margin-bottom:1rem}
+.cmt img{width:2.2rem;height:2.2rem;border-radius:50%;flex:none;background:#222}
+.cmt>div{min-width:0}
+.cn{font-size:.8rem;font-weight:600}
+.cn span{color:#aaa;font-weight:400;margin-left:.4rem}
+.ct{font-size:.9rem;line-height:1.35;margin-top:.15rem;white-space:pre-wrap;word-break:break-word}
+.cl{font-size:.8rem;color:#aaa;margin-top:.25rem}
+#cmore{display:none;margin:.5rem auto 3rem}
+@media (orientation:landscape){
+  #player .stage{max-width:none;margin:0;flex-direction:row;height:100vh;justify-content:center;align-items:center;background:#000}
+  #player .side{order:0;flex-direction:column;justify-content:center;align-items:center;width:3.6rem;padding:0}
+  #player .side span{display:none}
+  #player .side button{width:2.8rem;height:2.8rem;padding:0;border-radius:50%;font-size:1.1rem}
+  #cbtn{display:block}
+  #player .v{width:min(calc(100vw - 3.6rem),calc(100vh * 16 / 9));height:min(100vh,calc((100vw - 3.6rem) * 9 / 16));aspect-ratio:auto}
+}
 </style>
 </head>
 <body>
@@ -67,10 +90,20 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
 </div>
 
 <div id="player">
-  <div class="bar"><button id="close">✕ Tutup</button><button id="next">Video selanjutnya ▶</button></div>
-  <div class="box">
+  <div class="stage">
     <div class="v"><iframe id="fr" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
-    <div class="info"><div class="t" id="pt" style="-webkit-line-clamp:3"></div><div class="m" id="pm"></div></div>
+    <div class="side">
+      <button id="close"><b>✕</b><span> Tutup</span></button>
+      <button id="cbtn">💬</button>
+      <button id="next"><span>Video selanjutnya </span><b>▶</b></button>
+    </div>
+  </div>
+  <div class="info">
+    <div class="t" id="pt" style="-webkit-line-clamp:3"></div>
+    <div class="m" id="pm"></div>
+    <h3 class="ch" id="cmhead">Komentar</h3>
+    <div id="cm"></div>
+    <button id="cmore">Muat lebih banyak</button>
   </div>
 </div>
 
@@ -127,6 +160,7 @@ function play(v){
   $("next").style.display=cur>=0?"block":"none";
   $("player").classList.add("on");
   post({type:"watch",video:v});
+  cmId=v.id;$("player").scrollTop=0;loadComments(false);
 }
 
 async function nextVideo(){
@@ -143,6 +177,22 @@ async function openHist(){
   $("hist").classList.add("on");
 }
 
+let cmN=0,cmId="";
+const kf=n=>n>=1e6?(n/1e6).toFixed(1)+" jt":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+" rb":""+n;
+async function loadComments(more){
+  const id=cmId;
+  if(more){cmN+=20}else{cmN=20;$("cm").innerHTML='<div class="m">Memuat komentar...</div>';$("cmore").style.display="none"}
+  try{
+    const d=await (await fetch("/api/comments?id="+id+"&n="+cmN)).json();
+    if(id!==cmId)return;
+    if(d.error){$("cm").innerHTML='<div class="m">Komentar gagal dimuat.</div>';return}
+    if(!d.items.length){$("cm").innerHTML='<div class="m">Komentar tidak tersedia atau dimatikan.</div>';return}
+    $("cm").innerHTML=d.items.map(c=>'<div class="cmt"><img loading="lazy" src="'+esc(c.avatar)+'"><div><div class="cn">'+esc(c.author)+(c.pinned?" 📌":"")+'<span>'+esc(c.time)+'</span></div><div class="ct">'+esc(c.text)+'</div><div class="cl">👍 '+kf(c.likes||0)+'</div></div></div>').join("");
+    $("cmore").style.display=d.items.length>=cmN?"block":"none";
+  }catch(e){if(id===cmId)$("cm").innerHTML='<div class="m">Komentar gagal dimuat.</div>'}
+}
+$("cmore").onclick=()=>loadComments(true);
+$("cbtn").onclick=()=>$("cmhead").scrollIntoView({behavior:"smooth"});
 document.addEventListener("click",e=>{
   let c=e.target.closest("[data-i]"); if(c){play(list[+c.dataset.i]);return}
   c=e.target.closest("[data-h]"); if(c){play(hw[+c.dataset.h]);return}

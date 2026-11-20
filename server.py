@@ -1,4 +1,4 @@
-import json, os, socket, subprocess, threading, urllib.parse
+import json, os, re, socket, subprocess, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +56,36 @@ def yt_search(q, page):
     chunk = items[(page - 1) * PAGE:need]
     return {"items": chunk, "more": len(chunk) == PAGE and page < 12}
 
+ccache = {}
+
+def yt_comments(vid, n):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{11}", vid or ""):
+        raise ValueError("id video tidak valid")
+    n = max(10, min(int(n), 100))
+    key = (vid, n)
+    with lock: hit = ccache.get(key)
+    if hit is not None: return hit
+    p = subprocess.run(
+        ["yt-dlp", "--skip-download", "--write-comments", "--ignore-no-formats-error",
+         "--no-playlist", "--no-warnings", "--dump-single-json",
+         "--extractor-args", f"youtube:max_comments={n},{n},0,0;comment_sort=top",
+         f"https://www.youtube.com/watch?v={vid}"],
+        capture_output=True, text=True, timeout=180)
+    if not p.stdout.strip():
+        raise RuntimeError((p.stderr or "yt-dlp gagal").strip()[-300:])
+    d = json.loads(p.stdout)
+    out = []
+    for c in d.get("comments") or []:
+        if c.get("parent") not in (None, "root"): continue
+        out.append({"author": c.get("author") or "", "text": c.get("text") or "",
+                    "likes": c.get("like_count") or 0, "time": c.get("_time_text") or "",
+                    "pinned": bool(c.get("is_pinned")), "avatar": c.get("author_thumbnail") or ""})
+    res = {"items": out}
+    with lock:
+        if len(ccache) > 60: ccache.clear()
+        ccache[key] = res
+    return res
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, code, ctype, body):
@@ -72,6 +102,11 @@ class H(BaseHTTPRequestHandler):
         if u.path == "/api/search":
             try:
                 self.js(yt_search(qs.get("q", ["populer indonesia"])[0], int(qs.get("page", ["1"])[0])))
+            except Exception as e:
+                print("ERROR:", e); self.js({"error": str(e)})
+        elif u.path == "/api/comments":
+            try:
+                self.js(yt_comments(qs.get("id", [""])[0], qs.get("n", ["20"])[0]))
             except Exception as e:
                 print("ERROR:", e); self.js({"error": str(e)})
         elif u.path == "/api/history":
