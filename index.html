@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>YouTube Lite</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -22,37 +22,51 @@ input{flex:1;min-width:0;width:100%;background:#121212;border:1px solid #303030;
 button{background:#222;border:1px solid #303030;color:#fff;padding:.5rem .9rem;font-size:1rem;border-radius:1.4rem}
 form button{border-radius:0 1.4rem 1.4rem 0;padding:0 1rem}
 a.gear{color:#fff;text-decoration:none;padding:.5rem .4rem;font-size:1.2rem}
+.tabs{flex:1 0 100%;display:flex;gap:.5rem;overflow-x:auto}
+.tabs button{padding:.4rem .9rem;font-size:.9rem;white-space:nowrap}
+.tabs button.on{background:#fff;color:#000}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr));gap:1.1rem;padding:.8rem}
 html.s .grid,html.p .grid{grid-template-columns:minmax(0,1fr);gap:1rem;padding:.6rem}
 html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1rem 1.4rem}
-.card{cursor:pointer;scroll-margin-top:5rem;min-width:0}
+.card{cursor:pointer;scroll-margin-top:7rem;min-width:0}
 .card:focus,.chip:focus,button:focus,a.gear:focus,input:focus{outline:3px solid #fff;outline-offset:3px}
 .th{position:relative;aspect-ratio:16/9;background:#222;border-radius:.8rem;overflow:hidden}
 .th img{width:100%;height:100%;object-fit:cover;display:block}
 .dur{position:absolute;right:.4rem;bottom:.4rem;background:#000c;padding:.1rem .35rem;border-radius:.3rem;font-size:.8rem;font-weight:600}
+.live{position:absolute;left:.4rem;bottom:.4rem;background:#e00;padding:.1rem .4rem;border-radius:.3rem;font-size:.75rem;font-weight:700}
 .t{margin-top:.5rem;font-size:1rem;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .m{margin-top:.2rem;font-size:.8rem;color:#aaa;overflow:hidden;text-overflow:ellipsis}
-#msg{text-align:center;color:#aaa;padding:2rem .8rem;word-break:break-word}
-#more{display:none;margin:.8rem auto 6rem;background:#f00;border:0;font-weight:700;padding:.8rem 2rem}
+.chl{cursor:pointer}
+.chl:hover{text-decoration:underline}
+#msg,#cmsg{text-align:center;color:#aaa;padding:2rem .8rem;word-break:break-word}
+#more,#chmore{display:none;margin:.8rem auto 6rem;background:#f00;border:0;font-weight:700;padding:.8rem 2rem}
 #fab{display:none;position:fixed;right:.9rem;bottom:1.1rem;z-index:6;background:#f00;border:0;font-weight:700;padding:.8rem 1.2rem;box-shadow:0 2px 10px #000a}
-#player{position:fixed;inset:0;background:#000f;z-index:10;display:none;flex-direction:column;overflow:auto}
-#player.on{display:flex}
-#player .box{width:100%;max-width:60rem;margin:auto}
-#player .v{position:relative;aspect-ratio:16/9}
-#player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-#player .info{padding:.8rem}
 .bar{display:flex;justify-content:space-between;gap:.5rem;padding:.6rem;flex-wrap:wrap}
-#hist{position:fixed;inset:0;background:#0f0f0f;z-index:8;display:none;overflow:auto}
-#hist.on{display:block}
+#hist,#chan{position:fixed;inset:0;background:#0f0f0f;display:none;overflow:auto}
+#hist{z-index:8}
+#chan{z-index:9}
+#hist.on,#chan.on{display:block}
 #hist h3{padding:1rem .8rem .3rem;font-size:1.1rem}
 .chips{padding:.4rem .8rem;display:flex;flex-wrap:wrap;gap:.5rem}
 .chip{background:#222;padding:.5rem .9rem;border-radius:1rem;font-size:.9rem;cursor:pointer;max-width:100%;word-break:break-word}
-
+.chh{display:flex;gap:.8rem;align-items:center;padding:.4rem .8rem}
+.chh img{width:4rem;height:4rem;border-radius:50%;background:#222;display:none}
+#chan .tabs{padding:.4rem .8rem}
+/* player */
+#player{position:fixed;inset:0;background:#000;z-index:10;display:none;flex-direction:column;overflow:auto}
+#player.on{display:flex}
 #player .stage,#player .info{flex:none}
 #player .stage{display:flex;flex-direction:column;width:100%;max-width:60rem;margin:0 auto}
 #player .side{order:-1;display:flex;justify-content:space-between;gap:.5rem;padding:.6rem}
-#cbtn{display:none}
+#player .v{position:relative;aspect-ratio:16/9;background:#000}
+#player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 #player .info{width:100%;max-width:60rem;margin:0 auto;padding:.8rem}
+#cbtn{display:none}
+#lchat{display:none;position:absolute;left:.5rem;bottom:3.2rem;max-width:78%;flex-direction:column;gap:.25rem;pointer-events:none;z-index:2}
+.lc{background:#000a;padding:.25rem .6rem;border-radius:.6rem;font-size:.85rem;line-height:1.25;word-break:break-word;animation:up .25s ease-out}
+.lc b{color:#8cf}
+.lc i{color:#fc0;font-style:normal;font-weight:700}
+@keyframes up{from{transform:translateY(.7rem);opacity:0}to{transform:none;opacity:1}}
 .ch{font-size:1.05rem;margin:1rem 0 .6rem}
 .cmt{display:flex;gap:.7rem;margin-bottom:1rem}
 .cmt img{width:2.2rem;height:2.2rem;border-radius:50%;flex:none;background:#222}
@@ -61,7 +75,7 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
 .cn span{color:#aaa;font-weight:400;margin-left:.4rem}
 .ct{font-size:.9rem;line-height:1.35;margin-top:.15rem;white-space:pre-wrap;word-break:break-word}
 .cl{font-size:.8rem;color:#aaa;margin-top:.25rem}
-#cmore{display:none;margin:.5rem auto 3rem}
+#cmore,#scmore{display:none;margin:.5rem auto 3rem}
 @media (orientation:landscape){
   #player .stage{max-width:none;margin:0;flex-direction:row;height:100vh;justify-content:center;align-items:center;background:#000}
   #player .side{order:0;flex-direction:column;justify-content:center;align-items:center;width:3.6rem;padding:0}
@@ -70,6 +84,22 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
   #cbtn{display:block}
   #player .v{width:min(calc(100vw - 3.6rem),calc(100vh * 16 / 9));height:min(100vh,calc((100vw - 3.6rem) * 9 / 16));aspect-ratio:auto}
 }
+/* shorts */
+#shorts{position:fixed;inset:0;background:#000;z-index:11;display:none;flex-direction:row;justify-content:center;align-items:center}
+#shorts.on{display:flex}
+.sh-main{display:flex;align-items:center;justify-content:center;gap:.6rem;height:100%;flex:1;min-width:0}
+.sh-v{position:relative;aspect-ratio:9/16;height:min(calc(100vh - 1rem),calc((100vw - 4.5rem) * 16 / 9));background:#000;border-radius:.8rem;overflow:hidden}
+.sh-v iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.sh-info{position:absolute;left:0;right:0;bottom:0;padding:.6rem .8rem;background:linear-gradient(transparent,#000d);pointer-events:none;font-size:.85rem}
+.sh-info .chl{pointer-events:auto;font-weight:700}
+.sh-ctl{display:flex;flex-direction:column;gap:.7rem}
+.sh-ctl button{width:2.9rem;height:2.9rem;border-radius:50%;padding:0;font-size:1.1rem}
+.sh-cm{display:none;position:absolute;top:0;right:0;bottom:0;width:min(100%,24rem);background:#111;flex-direction:column;overflow:auto;z-index:3;padding:.6rem}
+.sh-cm.show{display:flex}
+@media (min-width:700px){
+  .sh-cm{position:static;display:flex;width:22rem;flex:none;height:100%}
+  #scbtn,#scclose{display:none}
+}
 </style>
 </head>
 <body>
@@ -77,6 +107,7 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
   <div class="logo">▶<span> Lite</span></div>
   <form id="f"><input id="q" placeholder="Cari video..." autocomplete="off"><button>Cari</button></form>
   <button id="hb">🕘</button><a class="gear" href="app://settings">⚙</a>
+  <div class="tabs" id="tabs"><button data-m="video" class="on">Video</button><button data-m="live">🔴 Live</button><button data-m="shorts">Shorts</button></div>
 </header>
 <div class="grid" id="grid"></div>
 <div id="msg"></div>
@@ -89,9 +120,21 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
   <h3>Terakhir ditonton</h3><div class="grid" id="hw"></div>
 </div>
 
+<div id="chan">
+  <div class="bar"><button id="chc">✕ Tutup</button></div>
+  <div class="chh"><img id="cav"><div><div class="t" id="cnm" style="margin:0"></div><div class="m" id="csb"></div></div></div>
+  <div class="tabs" id="ctabs"><button data-t="chan_videos" class="on">Video</button><button data-t="chan_shorts">Shorts</button><button data-t="chan_streams">Live</button></div>
+  <div class="grid" id="cgrid"></div>
+  <div id="cmsg"></div>
+  <button id="chmore">Lanjut ▼</button>
+</div>
+
 <div id="player">
   <div class="stage">
-    <div class="v"><iframe id="fr" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <div class="v">
+      <iframe id="fr" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+      <div id="lchat"></div>
+    </div>
     <div class="side">
       <button id="close"><b>✕</b><span> Tutup</span></button>
       <button id="cbtn">💬</button>
@@ -101,15 +144,49 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
   <div class="info">
     <div class="t" id="pt" style="-webkit-line-clamp:3"></div>
     <div class="m" id="pm"></div>
-    <h3 class="ch" id="cmhead">Komentar</h3>
-    <div id="cm"></div>
-    <button id="cmore">Muat lebih banyak</button>
+    <div id="cmbox"><h3 class="ch" id="cmhead">Komentar</h3><div id="cm"></div><button id="cmore">Muat lebih banyak</button></div>
+  </div>
+</div>
+
+<div id="shorts">
+  <div class="sh-main">
+    <div class="sh-v">
+      <iframe id="sfr" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+      <div class="sh-info"><div id="stt"></div><div class="chl" id="sch"></div></div>
+    </div>
+    <div class="sh-ctl">
+      <button id="sclose">✕</button>
+      <button id="sup">▲</button>
+      <button id="sdown">▼</button>
+      <button id="scbtn">💬</button>
+    </div>
+  </div>
+  <div class="sh-cm" id="shcm">
+    <div class="bar"><b>Komentar</b><button id="scclose">✕</button></div>
+    <div id="scm"></div>
+    <button id="scmore">Muat lebih banyak</button>
   </div>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
-const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const api=async u=>(await fetch(u)).json();
+const kf=n=>n>=1e6?(n/1e6).toFixed(1)+" jt":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+" rb":""+n;
+const setOn=(box,btn)=>[...box.children].forEach(x=>x.classList.toggle("on",x===btn));
+
+/* ---------- mode tampilan ---------- */
+(function(){
+  const h=document.documentElement;
+  function setMode(){
+    const u=new URLSearchParams(location.search).get("ui");
+    const w=innerWidth;
+    h.className=["s","p","t","tv"].includes(u)?u:(w<=360?"s":w<600?"p":"t");
+  }
+  setMode();addEventListener("resize",setMode);
+})();
+
+/* ---------- history (disimpan di HP lewat APK) ---------- */
 const LH={
   get(){try{return JSON.parse(AppHist.get())}catch(e){return {watch:[],search:[]}}},
   post(b){
@@ -121,102 +198,270 @@ const LH={
   }
 };
 const post=b=>window.AppHist?LH.post(b):fetch("/api/history",{method:"POST",body:JSON.stringify(b)}).catch(()=>{});
-let q="populer indonesia",page=0,list=[],busy=false,hw=[],cur=-1;
 
+/* ---------- kartu & daftar ---------- */
 function card(v,i,attr){
-  return `<div class="card" tabindex="0" ${attr}="${i}"><div class="th"><img loading="lazy" src="${v.thumb}">${v.dur?`<span class="dur">${esc(v.dur)}</span>`:""}</div>
-  <div class="t">${esc(v.title)}</div><div class="m">${esc(v.channel)}</div><div class="m">${esc(v.views)}</div></div>`;
+  const badge=v.live?'<span class="live">● LIVE</span>':(v.dur?'<span class="dur">'+esc(v.dur)+'</span>':"");
+  return '<div class="card" tabindex="0" '+attr+'="'+i+'"><div class="th"><img loading="lazy" src="'+esc(v.thumb)+'">'+badge+'</div>'
+    +'<div class="t">'+esc(v.title)+'</div>'
+    +'<div class="m"><span class="chl" data-c="'+esc(v.cid||"")+'" data-n="'+esc(v.channel)+'">'+esc(v.channel)+'</span></div>'
+    +'<div class="m">'+esc(v.views)+'</div></div>';
+}
+const DUM=()=>({style:{},innerHTML:"",textContent:"",insertAdjacentHTML(){}});
+const E=id=>id?$(id):DUM();
+function Lst(o){
+  const L={items:[],page:0,busy:false,hasMore:false};
+  L.load=async function(reset){
+    if(L.busy)return -1; L.busy=true;
+    const g=E(o.grid),m=E(o.msg),mo=E(o.more);
+    if(reset){L.items=[];L.page=0;g.innerHTML="";mo.style.display="none";L.hasMore=false;if(o.fab)$("fab").style.display="none"}
+    L.page++;m.textContent="Memuat...";
+    const start=L.items.length;
+    try{
+      const d=await api("/api/list?kind="+o.kind()+"&ref="+encodeURIComponent(o.ref())+"&page="+L.page);
+      if(d.error){m.textContent="Error: "+d.error;L.page--;return -1}
+      const seen=new Set(L.items.map(x=>x.id));
+      const its=d.items.filter(x=>!seen.has(x.id));
+      L.items=L.items.concat(its);
+      g.insertAdjacentHTML("beforeend",its.map((v,k)=>card(v,start+k,o.attr)).join(""));
+      m.textContent=L.items.length?"":"Tidak ada hasil.";
+      L.hasMore=!!d.more;
+      mo.style.display=d.more?"block":"none";
+      if(o.fab)$("fab").style.display=d.more?"block":"none";
+      if(o.meta)o.meta(d.meta||{});
+      return start;
+    }catch(e){
+      m.textContent="Gagal memuat: "+e;L.page--;
+      if(o.reload)setTimeout(()=>location.reload(),2500);
+      return -1;
+    }finally{L.busy=false}
+  };
+  return L;
 }
 
-async function load(reset){
-  if(busy)return -1; busy=true;
-  if(reset){page=0;list=[];$("grid").innerHTML="";$("more").style.display="none";$("fab").style.display="none"}
-  page++; $("msg").textContent="Memuat...";
-  const start=list.length;
-  try{
-    const d=await (await fetch("/api/search?q="+encodeURIComponent(q)+"&page="+page)).json();
-    if(d.error){$("msg").textContent="Error: "+d.error;page--;return -1}
-    const seen=new Set(list.map(x=>x.id));
-    const items=d.items.filter(x=>!seen.has(x.id));
-    list=list.concat(items);
-    $("grid").insertAdjacentHTML("beforeend",items.map((v,k)=>card(v,start+k,"data-i")).join(""));
-    $("msg").textContent=list.length?"":"Tidak ada hasil.";
-    $("more").style.display=d.more?"block":"none";
-    $("fab").style.display=d.more?"block":"none";
-    return start;
-  }catch(e){$("msg").textContent="Gagal memuat: "+e;page--;setTimeout(()=>location.reload(),2500);return -1}
-  finally{busy=false}
-}
-
+let mode="video",qv="populer indonesia",ql="live indonesia";
+const curQ=()=>mode==="live"?ql:qv;
+const MAIN=Lst({grid:"grid",msg:"msg",more:"more",fab:1,reload:1,attr:"data-i",kind:()=>mode,ref:curQ});
 async function lanjut(){
-  const s=await load(false);
-  if(s>=0){const el=document.querySelector('[data-i="'+s+'"]');if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}
+  const s=await MAIN.load(false);
+  if(s>=0){const el=document.querySelector('#grid [data-i="'+s+'"]');if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}
 }
 
-function play(v){
-  cur=list.findIndex(x=>x.id===v.id);
-  $("fr").src="https://www.youtube-nocookie.com/embed/"+v.id+"?autoplay=1&rel=0";
-  $("pt").textContent=v.title;$("pm").textContent=v.channel+" • "+v.views;
+/* ---------- komentar ---------- */
+function Cm(boxId,moreId){
+  const C={id:"",n:0};
+  C.load=async function(id,more){
+    if(id)C.id=id;
+    const my=C.id;
+    if(more){C.n+=20}else{C.n=20;$(boxId).innerHTML='<div class="m">Memuat komentar...</div>';$(moreId).style.display="none"}
+    try{
+      const d=await api("/api/comments?id="+my+"&n="+C.n);
+      if(my!==C.id)return;
+      if(d.error){$(boxId).innerHTML='<div class="m">Komentar gagal dimuat.</div>';return}
+      if(!d.items.length){$(boxId).innerHTML='<div class="m">Komentar tidak tersedia atau dimatikan.</div>';return}
+      $(boxId).innerHTML=d.items.map(c=>'<div class="cmt"><img loading="lazy" src="'+esc(c.avatar)+'"><div><div class="cn">'+esc(c.author)+(c.pinned?" 📌":"")+'<span>'+esc(c.time)+'</span></div><div class="ct">'+esc(c.text)+'</div><div class="cl">👍 '+kf(c.likes||0)+'</div></div></div>').join("");
+      $(moreId).style.display=d.items.length>=C.n?"block":"none";
+    }catch(e){if(my===C.id)$(boxId).innerHTML='<div class="m">Komentar gagal dimuat.</div>'}
+  };
+  return C;
+}
+const CMP=Cm("cm","cmore"),CMS=Cm("scm","scmore");
+
+/* ---------- live chat (maks 4 baris, naik ke atas) ---------- */
+let chatT=null,showT=null,chatSeq=-1,chatQ=[],chatId="";
+function stopChat(){clearTimeout(chatT);clearTimeout(showT);chatT=null;showT=null;chatQ=[];chatSeq=-1;chatId="";$("lchat").innerHTML=""}
+function startChat(id){stopChat();chatId=id;pollChat();showLoop()}
+function chatNote(t){const b=$("lchat");if(!b.children.length){const el=document.createElement("div");el.className="lc";el.textContent=t;b.appendChild(el)}}
+async function pollChat(){
+  const id=chatId;if(!id)return;
+  let wait=3000;
+  try{
+    const d=await api("/api/chat?id="+id+"&after="+chatSeq);
+    if(id!==chatId)return;
+    if(d.error){chatNote("Live chat belum tersedia");wait=10000}
+    else{chatSeq=d.seq;chatQ=chatQ.concat(d.items).slice(-60)}
+  }catch(e){wait=8000}
+  if(id===chatId)chatT=setTimeout(pollChat,wait);
+}
+function addChat(m){
+  const box=$("lchat"),el=document.createElement("div");
+  el.className="lc";
+  el.innerHTML='<b>'+esc(m.author)+'</b> '+(m.paid?'<i>'+esc(m.paid)+'</i> ':"")+esc(m.text);
+  box.appendChild(el);
+  while(box.children.length>4)box.removeChild(box.firstChild);
+}
+function showLoop(){
+  if(!chatId)return;
+  if(chatQ.length){
+    const b=$("lchat");
+    if(b.firstChild&&!b.firstChild.querySelector("b"))b.removeChild(b.firstChild);
+    addChat(chatQ.shift());
+  }
+  showT=setTimeout(showLoop,chatQ.length>10?150:chatQ.length>3?350:900);
+}
+
+/* ---------- player ---------- */
+let curV=null,ctxL=null,cur=-1;
+function play(v,L){
+  ctxL=L||null;curV=v;
+  cur=L?L.items.findIndex(x=>x.id===v.id):-1;
+  $("fr").src="https://www.youtube-nocookie.com/embed/"+v.id+"?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3";
+  $("pt").textContent=v.title;
+  $("pm").innerHTML='<span class="chl" data-c="'+esc(v.cid||"")+'" data-n="'+esc(v.channel)+'">'+esc(v.channel)+'</span>'+(v.views?' • '+esc(v.views):"");
   $("next").style.display=cur>=0?"block":"none";
-  $("player").classList.add("on");
+  $("player").classList.add("on");$("player").scrollTop=0;
   post({type:"watch",video:v});
-  cmId=v.id;$("player").scrollTop=0;loadComments(false);
+  stopChat();
+  if(v.live){$("cmbox").style.display="none";$("lchat").style.display="flex";startChat(v.id)}
+  else{$("lchat").style.display="none";$("cmbox").style.display="block";CMP.load(v.id,false)}
 }
-
+function closePlayer(){$("fr").src="";$("player").classList.remove("on");stopChat()}
 async function nextVideo(){
-  if(cur<0)return;
-  if(cur+1>=list.length){await load(false)}
-  if(cur+1<list.length)play(list[cur+1]);
+  const L=ctxL;if(!L||cur<0)return;
+  if(cur+1>=L.items.length&&L.hasMore)await L.load(false);
+  if(cur+1<L.items.length)play(L.items[cur+1],L);
+}
+async function playById(id){
+  let v;
+  try{v=await api("/api/info?id="+id);if(v.error)throw 0}
+  catch(e){v={id:id,title:"Video",channel:"",cid:"",views:"",dur:"",live:false,thumb:"https://i.ytimg.com/vi/"+id+"/hqdefault.jpg"}}
+  if($("shorts").classList.contains("on"))closeShorts();
+  play(v,null);
 }
 
+/* ---------- channel ---------- */
+let chRef="",chKind="chan_videos";
+const CH=Lst({grid:"cgrid",msg:"cmsg",more:"chmore",attr:"data-c2",kind:()=>chKind,ref:()=>chRef,
+  meta:m=>{if(m.name)$("cnm").textContent=m.name;if(m.subs)$("csb").textContent=m.subs;if(m.avatar){$("cav").src=m.avatar;$("cav").style.display="block"}}});
+function closeAll(){closePlayer();closeShorts();$("hist").classList.remove("on")}
+function openChannel(ref,name){
+  if(!ref){
+    if(name){closeAll();$("chan").classList.remove("on");mode="video";setOn($("tabs"),$("tabs").children[0]);qv=name;$("q").value=name;MAIN.load(true);scrollTo(0,0)}
+    return;
+  }
+  closeAll();
+  chRef=ref;chKind="chan_videos";
+  setOn($("ctabs"),$("ctabs").children[0]);
+  $("cnm").textContent=name||"";$("csb").textContent="";$("cav").style.display="none";
+  $("chan").classList.add("on");$("chan").scrollTop=0;
+  CH.load(true);
+}
+$("ctabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;chKind=b.dataset.t;setOn($("ctabs"),b);CH.load(true)};
+$("chc").onclick=()=>$("chan").classList.remove("on");
+
+/* ---------- shorts ---------- */
+const SHF=Lst({kind:()=>"shorts",ref:()=>qv});
+let SH={L:null,i:0};
+function startShorts(){
+  $("shorts").classList.add("on");$("shcm").classList.remove("show");
+  $("stt").textContent="Memuat shorts...";$("sch").textContent="";$("sfr").src="";$("scm").innerHTML="";
+  SH={L:SHF,i:0};
+  SHF.load(true).then(()=>{if(SHF.items.length)showShort();else $("stt").textContent="Tidak ada shorts."});
+}
+function openShorts(L,i){
+  SH={L:L,i:i||0};
+  $("shorts").classList.add("on");$("shcm").classList.remove("show");
+  showShort();
+}
+function showShort(){
+  const L=SH.L,v=L.items[SH.i];if(!v)return;
+  $("sfr").src="https://www.youtube-nocookie.com/embed/"+v.id+"?autoplay=1&rel=0&loop=1&playlist="+v.id+"&controls=0&modestbranding=1&playsinline=1&iv_load_policy=3";
+  $("stt").textContent=v.title;
+  const s=$("sch");s.textContent=v.channel;s.dataset.c=v.cid||"";s.dataset.n=v.channel;
+  CMS.load(v.id,false);
+  post({type:"watch",video:v});
+  if(SH.i>=L.items.length-3&&L.hasMore&&!L.busy)L.load(false);
+}
+async function shNext(){
+  const L=SH.L;if(!L)return;
+  if(SH.i+1>=L.items.length&&L.hasMore)await L.load(false);
+  if(SH.i+1<L.items.length){SH.i++;showShort()}
+}
+function shPrev(){if(SH.L&&SH.i>0){SH.i--;showShort()}}
+function closeShorts(){$("shorts").classList.remove("on");$("sfr").src="";$("shcm").classList.remove("show")}
+$("sclose").onclick=closeShorts;$("sdown").onclick=shNext;$("sup").onclick=shPrev;
+$("scbtn").onclick=()=>$("shcm").classList.toggle("show");
+$("scclose").onclick=()=>$("shcm").classList.remove("show");
+$("scmore").onclick=()=>CMS.load(null,true);
+let ty=0,tOk=false;
+$("shorts").addEventListener("touchstart",e=>{tOk=!(e.target.closest&&e.target.closest(".sh-cm"));ty=e.touches[0].clientY},{passive:true});
+$("shorts").addEventListener("touchend",e=>{if(!tOk)return;const dy=e.changedTouches[0].clientY-ty;if(dy<-70)shNext();else if(dy>70)shPrev()},{passive:true});
+addEventListener("keydown",e=>{
+  if(!$("shorts").classList.contains("on"))return;
+  if(e.key==="ArrowDown"){shNext();e.preventDefault()}
+  else if(e.key==="ArrowUp"){shPrev();e.preventDefault()}
+});
+
+/* ---------- history ---------- */
+let hw=[];
 async function openHist(){
-  const h=window.AppHist?LH.get():await (await fetch("/api/history")).json();
+  const h=window.AppHist?LH.get():await api("/api/history");
   hw=h.watch||[];
-  $("hs").innerHTML=(h.search||[]).map(s=>`<span class="chip" tabindex="0">${esc(s)}</span>`).join("")||'<div class="m">Belum ada.</div>';
-  $("hw").innerHTML=hw.map((v,i)=>card(v,i,"data-h")).join("")||'<div class="m" style="padding:12px">Belum ada.</div>';
+  $("hs").innerHTML=(h.search||[]).map(s=>'<span class="chip" tabindex="0">'+esc(s)+'</span>').join("")||'<div class="m">Belum ada.</div>';
+  $("hw").innerHTML=hw.map((v,i)=>card(v,i,"data-h")).join("")||'<div class="m" style="padding:.8rem">Belum ada.</div>';
   $("hist").classList.add("on");
 }
-
-let cmN=0,cmId="";
-const kf=n=>n>=1e6?(n/1e6).toFixed(1)+" jt":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+" rb":""+n;
-async function loadComments(more){
-  const id=cmId;
-  if(more){cmN+=20}else{cmN=20;$("cm").innerHTML='<div class="m">Memuat komentar...</div>';$("cmore").style.display="none"}
-  try{
-    const d=await (await fetch("/api/comments?id="+id+"&n="+cmN)).json();
-    if(id!==cmId)return;
-    if(d.error){$("cm").innerHTML='<div class="m">Komentar gagal dimuat.</div>';return}
-    if(!d.items.length){$("cm").innerHTML='<div class="m">Komentar tidak tersedia atau dimatikan.</div>';return}
-    $("cm").innerHTML=d.items.map(c=>'<div class="cmt"><img loading="lazy" src="'+esc(c.avatar)+'"><div><div class="cn">'+esc(c.author)+(c.pinned?" 📌":"")+'<span>'+esc(c.time)+'</span></div><div class="ct">'+esc(c.text)+'</div><div class="cl">👍 '+kf(c.likes||0)+'</div></div></div>').join("");
-    $("cmore").style.display=d.items.length>=cmN?"block":"none";
-  }catch(e){if(id===cmId)$("cm").innerHTML='<div class="m">Komentar gagal dimuat.</div>'}
-}
-$("cmore").onclick=()=>loadComments(true);
-$("cbtn").onclick=()=>$("cmhead").scrollIntoView({behavior:"smooth"});
-document.addEventListener("click",e=>{
-  let c=e.target.closest("[data-i]"); if(c){play(list[+c.dataset.i]);return}
-  c=e.target.closest("[data-h]"); if(c){play(hw[+c.dataset.h]);return}
-  c=e.target.closest(".chip"); if(c){
-    q=c.textContent;$("q").value=q;$("hist").classList.remove("on");post({type:"search",q});load(true);window.scrollTo(0,0)}
-});
-$("more").onclick=lanjut; $("fab").onclick=lanjut; $("next").onclick=nextVideo;
-$("hb").onclick=openHist; $("hc").onclick=()=>$("hist").classList.remove("on");
+$("hb").onclick=openHist;
+$("hc").onclick=()=>$("hist").classList.remove("on");
 $("hx").onclick=async()=>{await post({type:"clear"});openHist()};
-$("close").onclick=()=>{$("fr").src="";$("player").classList.remove("on")};
-$("f").onsubmit=e=>{e.preventDefault();const t=$("q").value.trim();if(t){q=t;post({type:"search",q});load(true);$("q").blur();window.scrollTo(0,0)}};
-(function(){
-  const h=document.documentElement;
-  function setMode(){
-    const u=new URLSearchParams(location.search).get("ui");
-    const w=window.innerWidth;
-    h.className=["s","p","t","tv"].includes(u)?u:(w<=360?"s":w<600?"p":"t");
+
+/* ---------- navigasi dari APK (link YouTube dicegat) ---------- */
+window.ytNav=function(u){
+  try{
+    const x=new URL(u),h=x.hostname.replace(/^(www|m)\./,""),p=x.pathname;
+    let id=null;
+    if(h==="youtu.be")id=p.slice(1).split("/")[0];
+    else if(p==="/watch")id=x.searchParams.get("v");
+    else{const m=p.match(/^\/(shorts|live|embed)\/([\w-]{11})/);if(m)id=m[2]}
+    if(id&&/^[\w-]{11}$/.test(id)){playById(id);return}
+    const c=p.match(/^\/(?:channel\/(UC[\w-]{22})|(@[^\/?#]+))/);
+    if(c)openChannel(c[1]||decodeURIComponent(c[2]),"");
+  }catch(e){}
+};
+window.goBack=function(){
+  const on=id=>$(id).classList.contains("on");
+  if(on("shorts")){if($("shcm").classList.contains("show"))$("shcm").classList.remove("show");else closeShorts();return 1}
+  if(on("player")){closePlayer();return 1}
+  if(on("chan")){$("chan").classList.remove("on");return 1}
+  if(on("hist")){$("hist").classList.remove("on");return 1}
+  return 0;
+};
+
+/* ---------- event ---------- */
+$("tabs").onclick=e=>{
+  const b=e.target.closest("button");if(!b)return;
+  const m=b.dataset.m;
+  if(m==="shorts"){startShorts();return}
+  mode=m;setOn($("tabs"),b);$("q").value=curQ()===("populer indonesia")||curQ()===("live indonesia")?"":curQ();
+  MAIN.load(true);scrollTo(0,0);
+};
+$("f").onsubmit=e=>{
+  e.preventDefault();
+  const t=$("q").value.trim();if(!t)return;
+  if(mode==="live")ql=t;else qv=t;
+  post({type:"search",q:t});MAIN.load(true);$("q").blur();scrollTo(0,0);
+};
+$("more").onclick=lanjut;$("fab").onclick=lanjut;$("next").onclick=nextVideo;
+$("close").onclick=closePlayer;
+$("cmore").onclick=()=>CMP.load(null,true);
+$("cbtn").onclick=()=>$("cmhead").scrollIntoView({behavior:"smooth"});
+$("chmore").onclick=()=>CH.load(false);
+document.addEventListener("click",e=>{
+  const t=e.target;
+  let c=t.closest(".chl");if(c){openChannel(c.dataset.c,c.dataset.n);return}
+  c=t.closest("[data-i]");if(c){play(MAIN.items[+c.dataset.i],MAIN);return}
+  c=t.closest("[data-c2]");if(c){const i=+c.dataset.c2;if(chKind==="chan_shorts")openShorts(CH,i);else play(CH.items[i],CH);return}
+  c=t.closest("[data-h]");if(c){play(hw[+c.dataset.h],null);return}
+  c=t.closest(".chip");if(c){
+    mode="video";setOn($("tabs"),$("tabs").children[0]);
+    qv=c.textContent;$("q").value=qv;$("hist").classList.remove("on");
+    post({type:"search",q:qv});MAIN.load(true);scrollTo(0,0);
   }
-  setMode();addEventListener("resize",setMode);
-})();
+});
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"){const c=e.target.closest&&e.target.closest(".card,.chip");if(c)c.click()}
 });
-load(true);
+MAIN.load(true);
 </script>
 </body>
 </html>
