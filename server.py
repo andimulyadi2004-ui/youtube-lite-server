@@ -1,4 +1,4 @@
-import json, os, re, socket, subprocess, threading, time, urllib.parse, urllib.request
+import json, os, re, socket, subprocess, tempfile, threading, time, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -231,11 +231,122 @@ def chat_poll(vid, after):
         items = c.buf[-4:] if after < 0 else [m for m in c.buf if m["seq"] > after][-40:]
         return {"items": items, "seq": c.seq}
 
+
+DLDIR = os.path.join(tempfile.gettempdir(), "ytlite-dl")
+os.makedirs(DLDIR, exist_ok=True)
+for _f in os.listdir(DLDIR):
+    try: os.remove(os.path.join(DLDIR, _f))
+    except OSError: pass
+dl_jobs = {}
+dl_sem = threading.Semaphore(2)
+HEIGHTS = {"360": 360, "480": 480, "720": 720}
+
+def dl_key(vid, q):
+    if not ID_RE.fullmatch(vid or ""): raise ValueError("id video tidak valid")
+    return (vid, q if q in HEIGHTS else "720")
+
+def dl_get(vid, q):
+    key = dl_key(vid, q)
+    with lock: return dl_jobs.get(key)
+
+def dl_clean(j):
+    pre = f"{j['vid']}_{j['q']}."
+    for f in os.listdir(DLDIR):
+        if f.startswith(pre):
+            try: os.remove(os.path.join(DLDIR, f))
+            except OSError: pass
+
+def dl_gc():
+    now = time.time()
+    with lock:
+        dead = [k for k, j in dl_jobs.items() if j["state"] not in ("queued", "working") and now - j["ts"] > 1800]
+        gone = [dl_jobs.pop(k) for k in dead]
+    for j in gone: dl_clean(j)
+
+def dl_run(j):
+    with dl_sem:
+        if j["cancel"]:
+            j["state"] = "error"; j["err"] = "dibatalkan"; return
+        j["state"] = "working"
+        h = HEIGHTS[j["q"]]
+        two = h > 360
+        if two:
+            fmt = f"bv*[height<={h}][vcodec^=avc1]+ba[ext=m4a]/b[height<={h}][ext=mp4]/b[height<={h}]"
+        else:
+            fmt = f"b[height<={h}][ext=mp4]/bv*[height<={h}][vcodec^=avc1]+ba[ext=m4a]/b[height<={h}]"
+        out = os.path.join(DLDIR, f"{j['vid']}_{j['q']}.%(ext)s")
+        plain = ["yt-dlp", "--no-playlist", "--newline", "--no-warnings", "-f", fmt,
+                 "--merge-output-format", "mp4", "--remux-video", "mp4", "-o", out,
+                 f"https://www.youtube.com/watch?v={j['vid']}"]
+        withjs = plain[:1] + ["--js-runtimes", "node", "--remote-components", "ejs:github"] + plain[1:]
+        tail = ""; rc = 1
+        for args in (withjs, plain):
+            stage = 0; tail = ""
+            p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            j["proc"] = p
+            for line in p.stdout:
+                tail = (tail + line)[-800:]
+                if "[download] Destination:" in line: stage += 1
+                m = re.search(r"\[download\]\s+([\d.]+)%", line)
+                if m:
+                    pc = float(m.group(1))
+                    j["pct"] = int(min(99, ((max(stage, 1) - 1) * 100 + pc) / 2)) if two else int(min(99, pc))
+            p.wait(); rc = p.returncode
+            if j["cancel"] or rc == 0: break
+            if not re.search(r"no such option|unrecognized arguments|invalid choice|unknown option", tail, re.I): break
+        if j["cancel"]:
+            j["state"] = "error"; j["err"] = "dibatalkan"; dl_clean(j); return
+        path = os.path.join(DLDIR, f"{j['vid']}_{j['q']}.mp4")
+        if rc != 0 or not os.path.exists(path):
+            lines = [x for x in tail.strip().splitlines() if x.strip()]
+            j["state"] = "error"; j["err"] = (lines[-1] if lines else "download gagal")[-220:]
+            dl_clean(j); return
+        j["path"] = path; j["size"] = os.path.getsize(path); j["pct"] = 100; j["state"] = "ready"
+
+def dl_start(vid, q):
+    key = dl_key(vid, q)
+    dl_gc()
+    with lock:
+        j = dl_jobs.get(key)
+        if j and j["state"] in ("queued", "working", "ready"):
+            j["ts"] = time.time()
+            return {"ok": True}
+        j = {"vid": key[0], "q": key[1], "state": "queued", "pct": 0, "size": 0, "path": "",
+             "err": "", "proc": None, "cancel": False, "ts": time.time()}
+        dl_jobs[key] = j
+    threading.Thread(target=dl_run, args=(j,), daemon=True).start()
+    return {"ok": True}
+
+def dl_status(vid, q):
+    j = dl_get(vid, q)
+    if not j: return {"state": "none"}
+    j["ts"] = time.time()
+    return {"state": j["state"], "pct": j["pct"], "size": j["size"], "error": j["err"]}
+
+def dl_cancel(vid, q):
+    key = dl_key(vid, q)
+    with lock: j = dl_jobs.pop(key, None)
+    if j:
+        j["cancel"] = True
+        p = j.get("proc")
+        if p and p.poll() is None:
+            try: p.kill()
+            except Exception: pass
+        dl_clean(j)
+    return {"ok": True}
+
+def dl_done(vid, q):
+    key = dl_key(vid, q)
+    with lock: j = dl_jobs.pop(key, None)
+    if j: dl_clean(j)
+    return {"ok": True}
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, code, ctype, body):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -260,6 +371,16 @@ class H(BaseHTTPRequestHandler):
                 self.js(chat_poll(g("id"), int(g("after", "-1"))))
             elif u.path == "/api/info":
                 self.js(yt_info(g("id")))
+            elif u.path == "/api/dl/start":
+                self.js(dl_start(g("id"), g("q", "720")))
+            elif u.path == "/api/dl/status":
+                self.js(dl_status(g("id"), g("q", "720")))
+            elif u.path == "/api/dl/file":
+                self.dl_file(g("id"), g("q", "720"))
+            elif u.path == "/api/dl/cancel":
+                self.js(dl_cancel(g("id"), g("q", "720")))
+            elif u.path == "/api/dl/done":
+                self.js(dl_done(g("id"), g("q", "720")))
             elif u.path == "/api/history":
                 self.js(load_h())
             else:
@@ -268,6 +389,24 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:
             print("ERROR:", e)
             self.js({"error": str(e)[-300:]})
+    def dl_file(self, vid, q):
+        j = dl_get(vid, q)
+        if not j or j["state"] != "ready" or not os.path.exists(j["path"]):
+            self.js({"error": "file belum siap"}); return
+        size = os.path.getsize(j["path"])
+        self.send_response(200)
+        self.send_header("Content-Type", "video/mp4")
+        self.send_header("Content-Length", str(size))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        try:
+            with open(j["path"], "rb") as f:
+                while True:
+                    b = f.read(65536)
+                    if not b: break
+                    self.wfile.write(b)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
     def do_POST(self):
         try:
             n = int(self.headers.get("Content-Length", 0))

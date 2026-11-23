@@ -100,13 +100,22 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
   .sh-cm{position:static;display:flex;width:22rem;flex:none;height:100%}
   #scbtn,#scclose{display:none}
 }
+
+#dlq,#net{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:1rem;text-align:center}
+#dlq{background:#000b;z-index:30}
+#net{background:#0f0f0f;z-index:40}
+#dlq.on,#net.on{display:flex}
+.nb{background:#181818;border-radius:1rem;padding:1.2rem;max-width:24rem;width:100%;display:flex;flex-direction:column;gap:.6rem}
+#net .nb{background:none}
+.nb button{padding:.7rem 1rem}
+#toast{position:fixed;left:50%;bottom:4.5rem;transform:translateX(-50%);background:#333;color:#fff;padding:.6rem 1rem;border-radius:1rem;font-size:.9rem;z-index:50;display:none;max-width:90%;text-align:center}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">▶<span> Lite</span></div>
   <form id="f"><input id="q" placeholder="Cari video..." autocomplete="off"><button>Cari</button></form>
-  <button id="hb">🕘</button><a class="gear" href="app://settings">⚙</a>
+  <button id="hb">🕘</button><button id="dlb">📥</button><a class="gear" href="app://settings">⚙</a>
   <div class="tabs" id="tabs"><button data-m="video" class="on">Video</button><button data-m="live">🔴 Live</button><button data-m="shorts">Shorts</button></div>
 </header>
 <div class="grid" id="grid"></div>
@@ -137,6 +146,7 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
     </div>
     <div class="side">
       <button id="close"><b>✕</b><span> Tutup</span></button>
+      <button id="dlbtn"><b>⬇</b><span> Download</span></button>
       <button id="cbtn">💬</button>
       <button id="next"><span>Video selanjutnya </span><b>▶</b></button>
     </div>
@@ -168,6 +178,22 @@ html.tv .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.2rem;padding:1
   </div>
 </div>
 
+<div id="dlq"><div class="nb">
+  <div class="t" style="margin:0">Download video</div>
+  <div class="m" style="margin-bottom:.4rem">Pilih kualitas (disimpan di dalam aplikasi):</div>
+  <button data-q="360">360p • hemat</button>
+  <button data-q="480">480p • sedang</button>
+  <button data-q="720">720p • HD</button>
+  <button id="dlqx">Batal</button>
+</div></div>
+<div id="net"><div class="nb">
+  <div style="font-size:3rem">📡</div>
+  <div class="t" id="nt" style="margin:.2rem 0">WiFi atau data Anda tidak terhubung</div>
+  <div class="m" id="ns" style="margin-bottom:1rem">Coba hubungkan atau nyalakan data Anda.</div>
+  <button id="nlib">📥 Lihat hasil download</button>
+  <button id="nretry">Coba lagi</button>
+</div></div>
+<div id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -309,6 +335,7 @@ function play(v,L){
   $("pt").textContent=v.title;
   $("pm").innerHTML='<span class="chl" data-c="'+esc(v.cid||"")+'" data-n="'+esc(v.channel)+'">'+esc(v.channel)+'</span>'+(v.views?' • '+esc(v.views):"");
   $("next").style.display=cur>=0?"block":"none";
+  dlUpdate(v);
   $("player").classList.add("on");$("player").scrollTop=0;
   post({type:"watch",video:v});
   stopChat();
@@ -461,6 +488,49 @@ document.addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"){const c=e.target.closest&&e.target.closest(".card,.chip");if(c)c.click()}
 });
+/* ---------- download & offline ---------- */
+const hasDl=!!window.AppDl;
+if(!hasDl){["dlb","dlbtn"].forEach(id=>{const e=$(id);if(e)e.style.display="none"})}
+let toastT=null;
+function toast(t){const e=$("toast");e.textContent=t;e.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>{e.style.display="none"},2800)}
+function dlUpdate(v){
+  if(!hasDl)return;
+  const b=$("dlbtn");
+  if(v.live){b.style.display="none";return}
+  b.style.display="";
+  const has=AppDl.has(v.id);
+  b.querySelector("b").textContent=has?"✔":"⬇";
+  b.querySelector("span").textContent=has?" Tersimpan":" Download";
+}
+$("dlbtn").onclick=()=>{
+  if(!hasDl||!curV||curV.live)return;
+  if(AppDl.has(curV.id)){toast("Sudah ada di Download");return}
+  $("dlq").classList.add("on");
+};
+$("dlq").onclick=e=>{
+  const b=e.target.closest("button");
+  if(!b){if(e.target===$("dlq"))$("dlq").classList.remove("on");return}
+  $("dlq").classList.remove("on");
+  if(!b.dataset.q||!curV)return;
+  const r=AppDl.start(JSON.stringify({id:curV.id,title:curV.title,channel:curV.channel,cid:curV.cid||"",dur:curV.dur||""}),b.dataset.q);
+  toast(r==="ok"?"Download dimulai, lihat di 📥":r==="exists"?"Sudah ada di Download":r==="busy"?"Video ini sedang diunduh":"Gagal: "+r);
+};
+$("dlb").onclick=()=>{if(hasDl)AppDl.openLib()};
+window.netState=function(ok){
+  if(!hasDl)return;
+  const tv=document.documentElement.classList.contains("tv");
+  $("nt").textContent=tv?"WiFi atau internet TV Anda tidak terhubung":"WiFi atau data Anda tidak terhubung";
+  $("ns").textContent=tv?"Coba hubungkan WiFi atau kabel LAN.":"Coba hubungkan atau nyalakan data Anda.";
+  $("net").classList.toggle("on",!ok);
+  if(ok&&!MAIN.items.length&&!MAIN.busy)MAIN.load(true);
+};
+$("nlib").onclick=()=>AppDl.openLib();
+$("nretry").onclick=()=>{if(AppDl.online())window.netState(true);else toast("Masih belum terhubung")};
+const _gb=window.goBack;
+window.goBack=function(){
+  if($("dlq").classList.contains("on")){$("dlq").classList.remove("on");return 1}
+  return _gb();
+};
 MAIN.load(true);
 </script>
 </body>
