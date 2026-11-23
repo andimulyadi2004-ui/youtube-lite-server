@@ -19,9 +19,7 @@ jobs:
           python-version: '3.12'
       - name: Siapkan
         run: |
-          pip install -U "yt-dlp[default]"
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          pip install -U yt-dlp
           wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O cloudflared
           chmod +x cloudflared
           echo "TES SEARCH:"
@@ -34,6 +32,7 @@ jobs:
         run: |
           nohup python server.py > server.log 2>&1 &
           nohup ./cloudflared tunnel --url http://localhost:8080 --no-autoupdate > tunnel.log 2>&1 &
+          (sudo apt-get update -qq; sudo apt-get install -y -qq ffmpeg; pip install -U "yt-dlp[default]") > extras.log 2>&1 &
           URL=""
           for i in $(seq 1 40); do
             URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' tunnel.log | head -1)
